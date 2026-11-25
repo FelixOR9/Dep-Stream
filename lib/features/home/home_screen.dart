@@ -2,6 +2,7 @@ import 'package:dep_stream/core/brand/brand_mark.dart';
 import 'package:dep_stream/core/database/app_database.dart';
 import 'package:dep_stream/features/match/create_match_screen.dart';
 import 'package:dep_stream/features/match/match_repository.dart';
+import 'package:dep_stream/features/match/match_screen.dart';
 import 'package:dep_stream/features/match/match_session.dart';
 import 'package:dep_stream/features/settings/settings_screen.dart';
 import 'package:flutter/material.dart';
@@ -45,10 +46,49 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _openMatch(MatchSession match) async {
+    await Navigator.pushNamed(
+      context,
+      MatchScreen.routeName,
+      arguments: match.id,
+    );
+    if (mounted) setState(_loadMatches);
+  }
+
+  Future<void> _openEditMatch(MatchSession match) async {
+    final saved = await Navigator.pushNamed<bool>(
+      context,
+      CreateMatchScreen.routeName,
+      arguments: match,
+    );
+    if (saved == true && mounted) {
+      setState(_loadMatches);
+    }
+  }
+
   String _formatDate(DateTime date) {
     final day = date.day.toString().padLeft(2, '0');
     final month = date.month.toString().padLeft(2, '0');
     return '$day/$month/${date.year}';
+  }
+
+  /// Resumen del partido para la tarjeta: fecha + marcador y reloj.
+  String _summary(MatchSession match) {
+    final date = _formatDate(match.createdAt);
+    switch (match.status) {
+      case MatchStatus.draft:
+        return '$date · 0-0';
+      case MatchStatus.inProgress:
+        return '$date · ${match.scoreText} · '
+            '${match.clock.formattedElapsed}';
+      case MatchStatus.paused:
+        return '$date · ${match.scoreText} · '
+            '${match.clock.formattedElapsed} · Pausa';
+      case MatchStatus.periodEnded:
+        return '$date · ${match.scoreText} · Fin del ${match.periodLabel}';
+      case MatchStatus.finished:
+        return '$date · ${match.scoreText}';
+    }
   }
 
   @override
@@ -106,8 +146,20 @@ class _HomeScreenState extends State<HomeScreen> {
                     match.title,
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  subtitle: Text(_formatDate(match.createdAt)),
-                  trailing: Chip(label: Text(match.status.label)),
+                  subtitle: Text(_summary(match)),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (match.status == MatchStatus.draft)
+                        IconButton(
+                          icon: const Icon(Icons.edit),
+                          tooltip: 'Editar partido',
+                          onPressed: () => _openEditMatch(match),
+                        ),
+                      Chip(label: Text(match.status.label)),
+                    ],
+                  ),
+                  onTap: () => _openMatch(match),
                 ),
               );
             },

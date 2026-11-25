@@ -51,6 +51,8 @@ void main() {
         find.widgetWithText(TextFormField, 'Equipo visitante'),
         'Leones',
       );
+      await tester.drag(find.byType(ListView), const Offset(0, -600));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Guardar partido'));
       await tester.pumpAndSettle();
 
@@ -68,8 +70,12 @@ void main() {
       await tester.tap(find.text('Crear partido'));
       await tester.pumpAndSettle();
 
+      await tester.drag(find.byType(ListView), const Offset(0, -600));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Guardar partido'));
       await tester.pump();
+      await tester.drag(find.byType(ListView), const Offset(0, 600));
+      await tester.pumpAndSettle();
 
       expect(find.text('Escribe el equipo local'), findsOneWidget);
       expect(find.text('Escribe el equipo visitante'), findsOneWidget);
@@ -101,7 +107,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Versión 0.1.0+1 (Etapa 0: Fundación)'), findsOneWidget);
+      expect(find.text('Versión 0.2.0+2 (Etapa 1: Partido y marcador)'), findsOneWidget);
       expect(find.text('Cámara'), findsOneWidget);
       expect(find.textContaining('Concedido'), findsOneWidget);
       expect(find.textContaining('Negado'), findsOneWidget);

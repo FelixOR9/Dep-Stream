@@ -1,6 +1,6 @@
 # Dep-Stream — Arquitectura
 
-**Versión:** 0.1.0+1 — Etapa 0: Fundación.
+**Versión:** 0.2.0+2 — Etapa 1: Partido y marcador.
 
 ## Principios
 
@@ -23,10 +23,12 @@ lib/
     theme/app_theme.dart    Tema oscuro propio.
     permissions/            Estados de permiso y puente Dart ↔ Kotlin.
     storage/                SecureCredentialStore (claves futuras).
-    database/               AppDatabase, SQLite v1.
+    database/               AppDatabase, SQLite v2 + migración v1 → v2.
   features/
-    home/                   Lista de partidos.
-    match/                  MatchSession, MatchRepository, crear partido.
+    home/                   Lista de partidos (con marcador y estado).
+    match/                  MatchSession, MatchEvent, MatchClock,
+                            MatchController, MatchRepository, crear partido
+                            y pantalla de partido en vivo.
     settings/               Versión y estado real de los permisos.
 android/app/src/main/kotlin/com/felix/depstream/
   MainActivity.kt           Canal de permisos + canal de notificación.
@@ -36,10 +38,26 @@ android/app/src/main/kotlin/com/felix/depstream/
 
 ## Datos
 
-- **SQLite v1**, tabla `matches` (`id`, `home_team`, `away_team`,
-  `created_at`, `status`). Estado actual: solo `draft`.
-- Las migraciones futuras serán versionadas (v1 → v2…) y nunca borrarán
-  datos sin autorización.
+- **SQLite v2**, tabla `matches` (`id`, `home_team`, `away_team`,
+  `created_at`, `status`, `home_color`, `away_color`,
+  `period_duration_minutes`, `periods_count`, `home_score`, `away_score`,
+  `current_period`, `clock_status`, `clock_started_at`,
+  `clock_accumulated_ms`, `updated_at`) y tabla `match_events` (`id`,
+  `match_id`, `team`, `kind`, `minute`, `created_at`).
+- Estados del partido: `draft` → `inProgress` → `paused` →
+  `periodEnded` → `finished` (terminal). Solo se edita en `draft`.
+- El marcador es un caché de los eventos de gol: marcador y evento se
+  escriben siempre en la misma transacción. El botón −1 anula el gol más
+  reciente del equipo.
+- El reloj es hora de pared (`MatchClock`, Dart puro): `elapsed =
+  accumulated + (ahora − startedAt)` mientras corre. Al cargar, si el
+  tiempo superó la duración del periodo, se congela en fin de periodo.
+  Si Félix cambia la hora del teléfono a mano en mitad de un partido,
+  el reloj saltará: limitación conocida, mismo diseño que TRANSMITI2.
+- La migración v1 → v2 solo usa `ADD COLUMN` con `DEFAULT` + la tabla
+  nueva, y un backfill de `updated_at = created_at`. Nunca borra datos.
+  Una base migrada y una base nueva en v2 tienen el mismo esquema (hay
+  test que lo comprueba).
 - El estado de los permisos **nunca** se guarda en SQLite. El historial
   de "ya se pidió antes" vive en SharedPreferences
   (`depstream_permission_history`) y solo sirve para distinguir la
@@ -56,7 +74,7 @@ de plataforma es `com.felix.depstream/permissions` con los métodos
 
 | Función futura | Dónde irá | Etapa |
 |---|---|---|
-| Marcador y reloj del partido | `features/match/` (MatchSession + MatchClock) | 1 |
+| Marcador y reloj del partido | `features/match/` (MatchSession + MatchClock) | 1 ✓ |
 | Cámara y vista previa | Kotlin Camera2 + overlay en Flutter | 2 |
 | Grabación local MP4 | Kotlin MediaCodec/MediaMuxer + `stream/` | 3 |
 | Biblioteca de grabaciones | `features/library/` (nueva) | 4 |

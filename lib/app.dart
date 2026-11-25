@@ -2,6 +2,7 @@ import 'package:dep_stream/core/database/app_database.dart';
 import 'package:dep_stream/core/theme/app_theme.dart';
 import 'package:dep_stream/features/home/home_screen.dart';
 import 'package:dep_stream/features/match/create_match_screen.dart';
+import 'package:dep_stream/features/match/match_screen.dart';
 import 'package:dep_stream/features/settings/settings_screen.dart';
 import 'package:flutter/material.dart';
 
@@ -21,6 +22,8 @@ class DepStreamApp extends StatelessWidget {
       routes: {
         CreateMatchScreen.routeName: (context) =>
             CreateMatchScreen(database: database),
+        MatchScreen.routeName: (context) =>
+            MatchScreen(database: database),
         SettingsScreen.routeName: (context) => const SettingsScreen(),
       },
     );

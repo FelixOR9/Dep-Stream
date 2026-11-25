@@ -3,26 +3,36 @@
 Transmite partidos de fútbol en vivo a Facebook desde tu teléfono, con
 marcador y grabación local.
 
-**Estado: Etapa 0 — Fundación (v0.1.0+1).** La app instala, abre, crea
-partidos y los guarda en el teléfono. Todavía NO hay cámara, grabación,
-transmisión ni marcador: eso llega en las siguientes etapas.
+**Estado: Etapa 1 — Partido y marcador (v0.2.0+2).** La app crea partidos
+con equipos, colores, duración y periodos, y los juega: marcador grande,
+reloj de pared, goles +1/−1 y tarjetas, todo guardado en el teléfono.
+Todavía NO hay cámara, grabación ni transmisión: eso llega en las
+siguientes etapas.
 
 ## Qué hace hoy
 
-- Pantalla principal con la lista de partidos guardados.
-- Crear un partido (equipo local, equipo visitante, fecha) y guardarlo en
-  SQLite. Los datos sobreviven al cerrar la app y al reiniciar el teléfono.
+- Pantalla principal con la lista de partidos guardados, con marcador y
+  estado de cada uno. Tocar un partido abre su pantalla en vivo.
+- Crear un partido (equipos, colores, duración del periodo, número de
+  periodos, fecha) y editarlo mientras siga en borrador.
+- Pantalla de partido: marcador grande, reloj `MM:SS` con hora de pared
+  (sigue correcto al cerrar la app, dejarla en segundo plano o reiniciar
+  el teléfono), botones de gol +1/−1 con confirmación para anular,
+  tarjetas amarillas y rojas, pausa, reanudación, fin de periodo y
+  finalización con confirmación. Cada gol y cada tarjeta se guarda como
+  evento con su minuto; el marcador nunca se desincroniza de los eventos.
 - Ajustes: versión de la app y estado real de los permisos de cámara,
   micrófono y notificaciones, con botón para pedirlos y para abrir los
   ajustes del sistema si alguno está negado para siempre.
-- Base de datos local v1 y almacenamiento seguro preparado para las claves
-  de transmisión (Etapa 5). No hay ninguna clave guardada.
+- Base de datos local v2 (migración v1 → v2 sin perder los partidos de la
+  Etapa 0) y almacenamiento seguro preparado para las claves de
+  transmisión (Etapa 5). No hay ninguna clave guardada.
 
 ## Qué NO hace todavía
 
-Cámara, vista previa, grabación, RTMP, Facebook Live, marcador, reloj,
-jugadores, cuentas ni pagos. Ver `docs/ARQUITECTURA.md` para saber dónde
-irá cada cosa.
+Cámara, vista previa, grabación, RTMP, Facebook Live, jugadores, logos de
+equipos (Etapa 6, como imágenes subidas desde el teléfono), cuentas ni
+pagos. Ver `docs/ARQUITECTURA.md` para saber dónde irá cada cosa.
 
 ## Cómo compilar
 

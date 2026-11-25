@@ -2,9 +2,9 @@ name: dep_stream
 description: "Transmite partidos de fútbol en vivo a Facebook desde tu teléfono, con marcador y grabación local."
 publish_to: 'none'
 
-# Dep-Stream v0.1.0+1 — Etapa 0: Fundación.
+# Dep-Stream v0.2.0+2 — Etapa 1: Partido y marcador.
 # No es 1.0.0: la 1.0.0 llega cuando el MVP transmita (Etapa 5).
-version: 0.1.0+1
+version: 0.2.0+2
 
 environment:
   sdk: ^3.14.0
