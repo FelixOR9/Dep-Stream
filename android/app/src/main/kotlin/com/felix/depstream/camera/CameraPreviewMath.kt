@@ -14,6 +14,9 @@ package com.felix.depstream.camera
 data class PreviewSize(val width: Int, val height: Int) {
     val area: Int get() = width * height
     val is16by9: Boolean get() = width * 9 == height * 16
+
+    /** El mismo tamaño con ancho y alto intercambiados. */
+    val transposed: PreviewSize get() = PreviewSize(height, width)
 }
 
 object CameraPreviewMath {
@@ -22,7 +25,48 @@ object CameraPreviewMath {
     val TARGET = PreviewSize(1280, 720)
 
     /**
+     * `true` si el sensor está de lado (90° o 270°): `getOutputSizes`
+     * devuelve los tamaños en orientación del sensor, traspuestos
+     * respecto a la pantalla.
+     */
+    fun isSidewaysSensor(sensorOrientation: Int): Boolean =
+        sensorOrientation == 90 || sensorOrientation == 270
+
+    /**
+     * Pasa la lista de `getOutputSizes` (orientación del sensor) a
+     * orientación de pantalla: con sensor de lado cada tamaño se
+     * traspone (720x1280 → 1280x720). Con sensor a 0°/180° la lista
+     * ya está en orientación de pantalla y se devuelve tal cual.
+     */
+    fun toDisplayOrientation(
+        sizes: List<PreviewSize>,
+        sensorOrientation: Int,
+    ): List<PreviewSize> {
+        if (!isSidewaysSensor(sensorOrientation)) return sizes
+        return sizes.map { it.transposed }
+    }
+
+    /**
+     * Inversa de [toDisplayOrientation] para un solo tamaño: el tamaño
+     * elegido en orientación de pantalla vuelve a orientación del
+     * sensor, que es lo que espera `setDefaultBufferSize`. El resultado
+     * siempre es uno de los tamaños que ofrece la cámara (traspuesto),
+     * nunca uno inventado.
+     */
+    fun toSensorOrientation(
+        size: PreviewSize,
+        sensorOrientation: Int,
+    ): PreviewSize {
+        if (!isSidewaysSensor(sensorOrientation)) return size
+        return size.transposed
+    }
+
+    /**
      * Elige el tamaño de vista previa entre los que ofrece el dispositivo.
+     *
+     * La lista debe venir en orientación de pantalla (ver
+     * [toDisplayOrientation]): las reglas se escriben sobre el lienzo
+     * 16:9 que dibuja Flutter.
      *
      * Reglas (plan §3.2), en orden:
      * 1. 1280x720 exacto, si está.

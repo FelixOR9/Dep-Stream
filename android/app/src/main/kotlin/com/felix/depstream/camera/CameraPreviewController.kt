@@ -29,6 +29,12 @@ import io.flutter.view.TextureRegistry
  * rotación calculada se devuelve a Dart junto con el id de la
  * textura y es el widget quien gira la imagen con `RotatedBox`.
  *
+ * Los tamaños de `getOutputSizes` vienen en orientación del sensor:
+ * se elige el tamaño en orientación de pantalla (1280x720) y el
+ * búfer se pide en orientación del sensor (720x1280 con sensor a
+ * 90°); sin esa trasposición la selección caía a un 4:3 que el visor
+ * 16:9 estiraba (imagen distorsionada, fix Etapa 2).
+ *
  * - Sin audio: solo vídeo. El micrófono no se abre en esta etapa.
  * - Sin grabación: la Etapa 3 añadirá una superficie de `MediaCodec`
  *   a esta misma sesión; aquí solo hay vista previa.
@@ -108,16 +114,32 @@ class CameraPreviewController(
             val sensorOrientation = characteristics.get(
                 CameraCharacteristics.SENSOR_ORIENTATION,
             ) ?: 0
-            val sizes = characteristics
+            val sensorSizes = characteristics
                 .get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
                 ?.getOutputSizes(SurfaceTexture::class.java)
                 ?.map { PreviewSize(it.width, it.height) }
                 ?: emptyList()
-            val previewSize = CameraPreviewMath.selectPreviewSize(sizes)
-            if (previewSize == null) {
+            // `getOutputSizes` devuelve los tamaños en orientación del
+            // sensor: con el sensor del S24 Ultra a 90°, el 1280x720
+            // aparece como 720x1280 y la selección directa no lo
+            // encontraba (caía al 4:3 más grande, que el visor 16:9
+            // estiraba y se veía distorsionado). Se elige en
+            // orientación de pantalla y el búfer vuelve a orientación
+            // del sensor, que es lo que espera `setDefaultBufferSize`.
+            val displaySize = CameraPreviewMath.selectPreviewSize(
+                CameraPreviewMath.toDisplayOrientation(
+                    sensorSizes,
+                    sensorOrientation,
+                ),
+            )
+            if (displaySize == null) {
                 fail("camera_unavailable", "La cámara no ofrece tamaños de vista previa.")
                 return
             }
+            val previewSize = CameraPreviewMath.toSensorOrientation(
+                displaySize,
+                sensorOrientation,
+            )
             val entry = textureRegistry.createSurfaceTexture()
             val surfaceTexture = entry.surfaceTexture()
             surfaceTexture.setDefaultBufferSize(previewSize.width, previewSize.height)

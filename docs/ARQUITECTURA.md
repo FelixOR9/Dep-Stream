@@ -110,6 +110,14 @@ Etapa 2) y `openAppSettings`.
   (`RotatedBox` en `CameraPreviewWidget`): en Kotlin no se puede,
   `SurfaceTexture` no tiene `setTransform`. La pantalla se bloquea en
   horizontal, así que el giro es fijo mientras está abierta.
+- **Tamaños en orientación del sensor:** `getOutputSizes` devuelve los
+  tamaños traspuestos respecto a la pantalla (el 1280x720 aparece como
+  720x1280 con sensor a 90°). La selección se hace en orientación de
+  pantalla (`toDisplayOrientation`) y el búfer se pide en orientación
+  del sensor (`toSensorOrientation`, 720x1280); elegir directo de la
+  lista caía al 4:3 más grande y el visor 16:9 lo estiraba (imagen
+  distorsionada, fix Etapa 2, con unitarios que simulan la lista real
+  del S24 Ultra).
 - La selección de tamaño y la rotación viven en `CameraPreviewMath`
   (lógica pura, probada con JUnit) porque las clases del framework de
   Android no se pueden usar en tests unitarios.
