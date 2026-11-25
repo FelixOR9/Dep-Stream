@@ -3,10 +3,12 @@
 Transmite partidos de fútbol en vivo a Facebook desde tu teléfono, con
 marcador y grabación local.
 
-**Estado: Etapa 1 — Partido y marcador (v0.2.0+2).** La app crea partidos
+**Estado: Etapa 2 — Cámara y overlay (v0.3.0+3).** La app crea partidos
 con equipos, colores, duración y periodos, y los juega: marcador grande,
 reloj de pared, goles +1/−1 y tarjetas, todo guardado en el teléfono.
-Todavía NO hay cámara, grabación ni transmisión: eso llega en las
+Desde un partido se abre la cámara trasera con el marcador encima
+(overlay 1280x720) y se puede marcar un gol o pausar sin salir de la
+cámara. Todavía NO hay grabación ni transmisión: eso llega en las
 siguientes etapas.
 
 ## Qué hace hoy
@@ -24,15 +26,21 @@ siguientes etapas.
 - Ajustes: versión de la app y estado real de los permisos de cámara,
   micrófono y notificaciones, con botón para pedirlos y para abrir los
   ajustes del sistema si alguno está negado para siempre.
+- Cámara (Camera2 nativa, sin plugins): vista previa 1280x720 con el
+  overlay del partido encima (equipos y colores, marcador, reloj,
+  periodo, estado), en horizontal fija y con controles grandes para una
+  mano (gol +1 por equipo, pausa/reanudar). Si la cámara está denegada
+  o falla, el partido sigue jugándose sin cámara.
 - Base de datos local v2 (migración v1 → v2 sin perder los partidos de la
   Etapa 0) y almacenamiento seguro preparado para las claves de
   transmisión (Etapa 5). No hay ninguna clave guardada.
 
 ## Qué NO hace todavía
 
-Cámara, vista previa, grabación, RTMP, Facebook Live, jugadores, logos de
-equipos (Etapa 6, como imágenes subidas desde el teléfono), cuentas ni
-pagos. Ver `docs/ARQUITECTURA.md` para saber dónde irá cada cosa.
+Grabación, RTMP, Facebook Live, jugadores, logos de equipos (Etapa 6,
+como imágenes subidas desde el teléfono), cuentas ni pagos. El marcador
+tiene un solo diseño fijo en esta etapa; las plantillas editables llegan
+en la Etapa 6. Ver `docs/ARQUITECTURA.md` para saber dónde irá cada cosa.
 
 ## Cómo compilar
 

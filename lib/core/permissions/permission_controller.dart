@@ -28,6 +28,16 @@ class PermissionController {
     return _parse(raw);
   }
 
+  /// Pide solo la cámara (Etapa 2). Devuelve el estado de la cámara
+  /// tras la respuesta del usuario. Sin canal, `notRequested`.
+  Future<PermissionState> requestCamera() async {
+    final raw = await _invoke('requestCamera');
+    return PermissionState(
+      permission: AppPermission.camera,
+      status: PermissionStatusX.fromChannelName(raw['camera']),
+    );
+  }
+
   /// Abre la pantalla de ajustes de la app en el sistema.
   Future<void> openAppSettings() async {
     try {

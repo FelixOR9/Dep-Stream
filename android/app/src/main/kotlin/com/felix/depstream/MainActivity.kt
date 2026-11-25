@@ -3,7 +3,10 @@ package com.felix.depstream
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import android.hardware.camera2.CameraManager
 import android.os.Build
+import android.view.Surface
+import com.felix.depstream.camera.CameraPreviewController
 import com.felix.depstream.permissions.PermissionManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -12,6 +15,7 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
 
     private lateinit var permissionManager: PermissionManager
+    private lateinit var cameraController: CameraPreviewController
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -24,12 +28,43 @@ class MainActivity : FlutterActivity() {
             when (call.method) {
                 "checkPermissions" -> result.success(permissionManager.checkPermissions())
                 "requestPermissions" -> permissionManager.requestPermissions(result)
+                "requestCamera" -> permissionManager.requestCamera(result)
                 "openAppSettings" -> {
                     permissionManager.openAppSettings()
                     result.success(null)
                 }
                 else -> result.notImplemented()
             }
+        }
+        cameraController = CameraPreviewController(
+            cameraManager =
+                getSystemService(Context.CAMERA_SERVICE) as CameraManager,
+            textureRegistry = flutterEngine.renderer,
+            displayRotationDegrees = { displayRotationDegrees() },
+        )
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "com.felix.depstream/camera",
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "openCamera" -> cameraController.openCamera(result)
+                "closeCamera" -> {
+                    cameraController.closeCamera()
+                    result.success(null)
+                }
+                "getCameraState" -> result.success(cameraController.stateMap())
+                else -> result.notImplemented()
+            }
+        }
+    }
+
+    /** Rotación de la pantalla en grados (0/90/180/270), para el giro de la textura. */
+    private fun displayRotationDegrees(): Int {
+        return when (display?.rotation) {
+            Surface.ROTATION_90 -> 90
+            Surface.ROTATION_180 -> 180
+            Surface.ROTATION_270 -> 270
+            else -> 0
         }
     }
 

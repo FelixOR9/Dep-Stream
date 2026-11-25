@@ -359,6 +359,20 @@ class _MatchScreenState extends State<MatchScreen>
         ],
         // Controles del reloj: solo el válido según el estado.
         ..._clockControls(context, controller, match),
+        const SizedBox(height: 12),
+        // Cámara: vista previa con el overlay del partido.
+        SizedBox(
+          height: 56,
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () => Navigator.pushNamed(
+              context,
+              '/camera',
+              arguments: match.id,
+            ),
+            child: const Text('Cámara'),
+          ),
+        ),
         const SizedBox(height: 24),
         const Text(
           'Eventos',

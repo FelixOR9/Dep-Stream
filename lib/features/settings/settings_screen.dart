@@ -78,7 +78,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             'Dep-Stream',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
-          const Text('Versión 0.2.0+2 (Etapa 1: Partido y marcador)'),
+          const Text('Versión 0.3.0+3 (Etapa 2: Cámara y overlay)'),
           const SizedBox(height: 24),
           const Text(
             'Permisos',
@@ -124,9 +124,9 @@ class _SettingsScreenState extends State<SettingsScreen>
           const Text(
             'Dep-Stream transmitirá partidos de fútbol en vivo a Facebook '
             'desde tu teléfono, con marcador y grabación local. En esta '
-            'versión ya puedes crear partidos y jugarlos con marcador y '
-            'reloj en la app: la cámara, la grabación y la transmisión '
-            'llegan en las siguientes etapas.',
+            'versión ya puedes crear partidos, jugarlos con marcador y '
+            'reloj, y ver la cámara con el marcador encima. La grabación '
+            'y la transmisión llegan en las siguientes etapas.',
           ),
         ],
       ),

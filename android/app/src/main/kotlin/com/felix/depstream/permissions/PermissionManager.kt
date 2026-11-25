@@ -25,6 +25,7 @@ class PermissionManager(private val activity: Activity) {
 
     companion object {
         const val REQUEST_CODE = 9001
+        const val REQUEST_CODE_CAMERA = 9002
         private const val PREFS_NAME = "depstream_permission_history"
         private const val KEY_REQUESTED = "requested_permissions"
 
@@ -76,12 +77,35 @@ class PermissionManager(private val activity: Activity) {
         )
     }
 
+    /**
+     * Pide solo la cámara (Etapa 2). Reutiliza `stateOf()` y el
+     * historial: no pide micrófono ni notificaciones, que no hacen
+     * falta para ver la cámara. El método combinado no se toca.
+     */
+    fun requestCamera(result: MethodChannel.Result) {
+        if (ContextCompat.checkSelfPermission(activity, Manifest.permission.CAMERA) ==
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            result.success(checkPermissions())
+            return
+        }
+        markRequested(listOf(Manifest.permission.CAMERA))
+        pendingResult = result
+        ActivityCompat.requestPermissions(
+            activity,
+            arrayOf(Manifest.permission.CAMERA),
+            REQUEST_CODE_CAMERA,
+        )
+    }
+
     fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
         @Suppress("UNUSED_PARAMETER") grantResults: IntArray,
     ) {
-        if (requestCode != REQUEST_CODE) return
+        if (requestCode != REQUEST_CODE && requestCode != REQUEST_CODE_CAMERA) {
+            return
+        }
         pendingResult?.success(checkPermissions())
         pendingResult = null
     }

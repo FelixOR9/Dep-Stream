@@ -107,7 +107,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Versión 0.2.0+2 (Etapa 1: Partido y marcador)'), findsOneWidget);
+      expect(find.text('Versión 0.3.0+3 (Etapa 2: Cámara y overlay)'), findsOneWidget);
       expect(find.text('Cámara'), findsOneWidget);
       expect(find.textContaining('Concedido'), findsOneWidget);
       expect(find.textContaining('Negado'), findsOneWidget);
