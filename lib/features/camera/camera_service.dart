@@ -41,10 +41,28 @@ class CameraPreviewSession {
 /// Si no hay canal (tests sin mock), `open()` devuelve un error en lugar
 /// de inventar una textura.
 class CameraService {
-  CameraService({MethodChannel? channel})
-    : _channel = channel ?? const MethodChannel('com.felix.depstream/camera');
+  CameraService({MethodChannel? channel, EventChannel? rotationChannel})
+    : _channel = channel ?? const MethodChannel('com.felix.depstream/camera'),
+      _rotationChannel =
+          rotationChannel ??
+          const EventChannel('com.felix.depstream/camera_rotation');
 
   final MethodChannel _channel;
+
+  /// Canal por el que Kotlin empuja el giro del preview en vivo.
+  final EventChannel _rotationChannel;
+
+  /// Giro del preview en vivo (0/90/180/270), cada vez que cambia la
+  /// rotación de pantalla con la sesión abierta.
+  ///
+  /// Kotlin empuja `{"rotationDegrees": ...}`; los eventos sin un giro
+  /// válido se descartan, nunca se inventa un giro. Sin canal, el
+  /// stream emite un error al escuchar (lo traga quien se suscribe).
+  Stream<int> get rotationChanged =>
+      _rotationChannel.receiveBroadcastStream().map((event) {
+        final rotation = event is Map ? event['rotationDegrees'] : null;
+        return rotation is int ? rotation : -1;
+      }).where((rotation) => rotation >= 0);
 
   /// Abre la cámara trasera y devuelve la sesión de vista previa
   /// (id de textura + rotación). Lanza [CameraException] con el

@@ -139,4 +139,40 @@ void main() {
       expect(await CameraService().state(), {'state': 'closed'});
     });
   });
+
+  group('CameraService.rotationChanged', () {
+    test('emite el giro que manda Kotlin y descarta eventos sin giro',
+        () async {
+      const rotationChannel =
+          EventChannel('com.felix.depstream/camera_rotation');
+      late MockStreamHandlerEventSink sink;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockStreamHandler(
+        rotationChannel,
+        MockStreamHandler.inline(
+          onListen: (_, events) {
+            sink = events;
+          },
+        ),
+      );
+      addTearDown(() {
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockStreamHandler(rotationChannel, null);
+      });
+
+      final received = <int>[];
+      final subscription =
+          CameraService().rotationChanged.listen(received.add);
+      // Dejar que el 'listen' llegue al mock antes de empujar eventos.
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      sink.success(<String, Object?>{'rotationDegrees': 180});
+      sink.success(<String, Object?>{'rotationDegrees': 'mal'});
+      sink.success(null);
+      sink.success(<String, Object?>{'rotationDegrees': 0});
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      await subscription.cancel();
+
+      expect(received, [180, 0]);
+    });
+  });
 }

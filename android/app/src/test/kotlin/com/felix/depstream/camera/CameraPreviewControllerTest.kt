@@ -176,6 +176,64 @@ class CameraPreviewControllerTest {
         )
     }
 
+    // Giro en vivo (PreviewRotationTracker): la rotación se calculaba
+    // una sola vez al abrir y la textura quedaba girada 90° toda la
+    // sesión cuando se abría en vertical; ahora se recalcula a cada
+    // cambio de pantalla.
+
+    @Test
+    fun `sensor 90 en vertical el giro inicial es 90`() {
+        assertEquals(
+            90,
+            PreviewRotationTracker(
+                sensorOrientation = 90,
+                displayRotationDegrees = 0,
+            ).currentDegrees,
+        )
+    }
+
+    @Test
+    fun `al pasar de vertical a horizontal a la izquierda el giro pasa de 90 a 0`() {
+        val tracker = PreviewRotationTracker(
+            sensorOrientation = 90,
+            displayRotationDegrees = 0,
+        )
+        assertTrue(tracker.refresh(90))
+        assertEquals(0, tracker.currentDegrees)
+    }
+
+    @Test
+    fun `sin cambio de pantalla refresh devuelve false y no cambia el giro`() {
+        val tracker = PreviewRotationTracker(
+            sensorOrientation = 90,
+            displayRotationDegrees = 90,
+        )
+        assertFalse(tracker.refresh(90))
+        assertEquals(0, tracker.currentDegrees)
+    }
+
+    @Test
+    fun `girar 180 en horizontal pasa el giro de 0 a 180`() {
+        val tracker = PreviewRotationTracker(
+            sensorOrientation = 90,
+            displayRotationDegrees = 90,
+        )
+        assertTrue(tracker.refresh(270))
+        assertEquals(180, tracker.currentDegrees)
+    }
+
+    @Test
+    fun `camara delantera suma en vez de restar`() {
+        assertEquals(
+            180,
+            PreviewRotationTracker(
+                sensorOrientation = 90,
+                displayRotationDegrees = 90,
+                frontCamera = true,
+            ).currentDegrees,
+        )
+    }
+
     // Ciclo de vida de la sesión (plan §5).
 
     @Test

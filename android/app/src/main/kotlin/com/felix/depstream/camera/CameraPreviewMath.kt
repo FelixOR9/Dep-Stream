@@ -109,6 +109,51 @@ object CameraPreviewMath {
     }
 }
 
+/**
+ * Giro del preview en vivo de una sesión abierta.
+ *
+ * La rotación se calculaba una sola vez al abrir la cámara: al entrar
+ * a la pantalla el teléfono todavía está en vertical y el bloqueo a
+ * horizontal ocurre justo después, así que la lectura daba 0° y la
+ * textura quedaba girada 90° toda la sesión (y girar 180° con la
+ * cámara abierta tampoco actualizaba nada). Este rastreador guarda el
+ * giro actual y lo recalcula cuando cambia la rotación de pantalla;
+ * solo avisa cuando cambia de verdad, para no re-renderizar el visor
+ * a cada cambio de pantalla que no afecta al giro.
+ *
+ * Lógica pura, sin Android: se prueba con JUnit. Quien vigila la
+ * pantalla (`DisplayManager.DisplayListener` en el controlador) solo
+ * llama a [refresh] y emite si devuelve `true`.
+ */
+class PreviewRotationTracker(
+    private val sensorOrientation: Int,
+    displayRotationDegrees: Int,
+    private val frontCamera: Boolean = false,
+) {
+    /** Giro actual del preview en grados (0/90/180/270). */
+    var currentDegrees: Int = CameraPreviewMath.previewRotationDegrees(
+        sensorOrientation = sensorOrientation,
+        displayRotationDegrees = displayRotationDegrees,
+        frontCamera = frontCamera,
+    )
+        private set
+
+    /**
+     * Recalcula el giro con la rotación actual de pantalla.
+     * Devuelve `true` si el giro cambió (hay que avisar a Dart).
+     */
+    fun refresh(displayRotationDegrees: Int): Boolean {
+        val next = CameraPreviewMath.previewRotationDegrees(
+            sensorOrientation = sensorOrientation,
+            displayRotationDegrees = displayRotationDegrees,
+            frontCamera = frontCamera,
+        )
+        if (next == currentDegrees) return false
+        currentDegrees = next
+        return true
+    }
+}
+
 /** Estados del ciclo de vida de una sesión de cámara. */
 enum class CameraLifecycleState { closed, opening, open, error }
 

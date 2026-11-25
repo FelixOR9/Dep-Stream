@@ -4,12 +4,14 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.hardware.camera2.CameraManager
+import android.hardware.display.DisplayManager
 import android.os.Build
 import android.view.Surface
 import com.felix.depstream.camera.CameraPreviewController
 import com.felix.depstream.permissions.PermissionManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
@@ -41,6 +43,8 @@ class MainActivity : FlutterActivity() {
                 getSystemService(Context.CAMERA_SERVICE) as CameraManager,
             textureRegistry = flutterEngine.renderer,
             displayRotationDegrees = { displayRotationDegrees() },
+            displayManager =
+                getSystemService(Context.DISPLAY_SERVICE) as DisplayManager,
         )
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
@@ -56,6 +60,27 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+        // Avisos de giro del preview en vivo: Kotlin empuja
+        // `{"rotationDegrees": ...}` cada vez que cambia la rotación
+        // de pantalla con la sesión abierta; Dart re-gira el visor al
+        // momento. Sin suscriptor no se emite nada.
+        EventChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "com.felix.depstream/camera_rotation",
+        ).setStreamHandler(
+            object : EventChannel.StreamHandler {
+                override fun onListen(
+                    arguments: Any?,
+                    events: EventChannel.EventSink,
+                ) {
+                    cameraController.setRotationSink(events)
+                }
+
+                override fun onCancel(arguments: Any?) {
+                    cameraController.setRotationSink(null)
+                }
+            },
+        )
     }
 
     /** Rotación de la pantalla en grados (0/90/180/270), para el giro de la textura. */

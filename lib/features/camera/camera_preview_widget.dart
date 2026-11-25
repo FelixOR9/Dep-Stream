@@ -12,8 +12,9 @@ import 'package:flutter/material.dart';
 /// dibuja igual con o sin textura: el marcador no depende de la cámara.
 ///
 /// La textura se gira con [rotationDegrees] (0/90/180/270, múltiplo
-/// de 90, calculado en Kotlin): `SurfaceTexture` no tiene
-/// `setTransform`, así que el giro se aplica aquí, en el widget.
+/// de 90, calculado en Kotlin y actualizado en vivo a cada cambio de
+/// pantalla): `SurfaceTexture` no tiene `setTransform`, así que el
+/// giro se aplica aquí, en el widget.
 /// El `AspectRatio` va DENTRO del `RotatedBox` para que la textura
 /// nunca se distorsione: el giro de 90°/270° la deja más pequeña con
 /// barras negras, pero derecha y sin estirar. El overlay no se gira.

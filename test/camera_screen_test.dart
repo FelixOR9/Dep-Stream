@@ -14,6 +14,21 @@ void main() {
   const permissionsChannel =
       MethodChannel('com.felix.depstream/permissions');
   const cameraChannel = MethodChannel('com.felix.depstream/camera');
+  const rotationChannel = EventChannel('com.felix.depstream/camera_rotation');
+
+  /// Sink del canal de giro en vivo, para empujar avisos de rotación
+  /// como los mandaría Kotlin al girar el teléfono.
+  late MockStreamHandlerEventSink rotationSink;
+
+  /// Empuja un aviso de giro en vivo y deja que el visor re-renderice.
+  /// El evento cruza varios saltos asíncronos (mock → canal → stream →
+  /// controlador → rebuild), así que hacen falta dos pumps: el segundo
+  /// con avance de tiempo deja que el aviso llegue y se aplique.
+  Future<void> pushRotation(WidgetTester tester, int degrees) async {
+    rotationSink.success(<String, Object?>{'rotationDegrees': degrees});
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+  }
 
   Future<AppDatabase> openTestDatabase() async {
     final database = AppDatabase(
@@ -82,11 +97,21 @@ void main() {
         return null;
       },
     );
+    binding.defaultBinaryMessenger.setMockStreamHandler(
+      rotationChannel,
+      MockStreamHandler.inline(
+        onListen: (_, events) {
+          rotationSink = events;
+        },
+      ),
+    );
     addTearDown(() {
       binding.defaultBinaryMessenger
           .setMockMethodCallHandler(permissionsChannel, null);
       binding.defaultBinaryMessenger
           .setMockMethodCallHandler(cameraChannel, null);
+      binding.defaultBinaryMessenger
+          .setMockStreamHandler(rotationChannel, null);
     });
     return calls;
   }
@@ -276,6 +301,45 @@ void main() {
 
       expect(calls['openAppSettings'], 1);
       expect(calls['requestCamera'], 0);
+    });
+
+    testWidgets('el giro del visor se actualiza en vivo al girar el teléfono',
+        (tester) async {
+      final database = await openTestDatabase();
+      addTearDown(database.close);
+      mockChannels(cameraStatus: 'granted');
+      final match = MatchSession.create(homeTeam: 'Águilas', awayTeam: 'Leones');
+      await MatchRepository(database).insert(match);
+      await startMatch(database, match);
+
+      await openMatchScreen(tester, database, match);
+      await tapCameraButton(tester);
+
+      // Al abrir, giro 90° (un cuarto de vuelta).
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is RotatedBox && w.quarterTurns == 1,
+        ),
+        findsOneWidget,
+      );
+
+      // La pantalla gira a horizontal a la izquierda: giro 0°.
+      await pushRotation(tester, 0);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is RotatedBox && w.quarterTurns == 0,
+        ),
+        findsOneWidget,
+      );
+
+      // Girar 180° con la cámara abierta: giro 180° (dos cuartos).
+      await pushRotation(tester, 180);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is RotatedBox && w.quarterTurns == 2,
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('Volver al partido cierra la cámara', (tester) async {

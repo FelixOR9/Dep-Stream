@@ -108,8 +108,17 @@ Etapa 2) y `openAppSettings`.
   rotación de la pantalla (fórmula estándar de Camera2, probada con
   unitarios). El giro lo aplica el widget `Texture` en Dart
   (`RotatedBox` en `CameraPreviewWidget`): en Kotlin no se puede,
-  `SurfaceTexture` no tiene `setTransform`. La pantalla se bloquea en
-  horizontal, así que el giro es fijo mientras está abierta.
+  `SurfaceTexture` no tiene `setTransform`. El giro es EN VIVO, no
+  de una sola vez al abrir: un `DisplayManager.DisplayListener`
+  activo solo con la sesión abierta recalcula el giro a cada cambio
+  de pantalla (`PreviewRotationTracker`, puro, con unitarios) y lo
+  empuja a Dart por el `EventChannel`
+  `com.felix.depstream/camera_rotation`; el controlador aplica el
+  aviso al momento (o lo guarda si llega mientras se está abriendo)
+  y el visor re-renderiza. Sin ese aviso, al abrir en vertical el
+  giro quedaba en 90° toda la sesión (imagen de lado, fix Etapa 2).
+  La respuesta de apertura también recalcula el giro en ese momento,
+  porque la pantalla gira a horizontal mientras se abre la cámara.
 - **Tamaños en orientación del sensor:** `getOutputSizes` devuelve los
   tamaños traspuestos respecto a la pantalla (el 1280x720 aparece como
   720x1280 con sensor a 90°). La selección se hace en orientación de

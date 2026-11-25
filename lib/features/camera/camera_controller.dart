@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dep_stream/core/permissions/permission_controller.dart';
 import 'package:dep_stream/core/permissions/permission_state.dart';
 import 'package:dep_stream/features/camera/camera_service.dart';
@@ -31,8 +33,18 @@ class CameraController extends ChangeNotifier {
   CameraControllerState _state = CameraControllerState.closed;
   int? _textureId;
 
-  /// Rotación del preview en grados (0/90/180/270), de la última apertura.
+  /// Rotación del preview en grados (0/90/180/270), la actual en vivo,
+  /// no solo la de la apertura: Kotlin avisa a cada cambio de pantalla.
   int _rotationDegrees = 0;
+
+  /// Suscripción a los avisos de giro en vivo, activa solo mientras
+  /// la cámara se está abriendo o está abierta.
+  StreamSubscription<int>? _rotationSubscription;
+
+  /// Giro que llegó en vivo mientras la cámara se estaba abriendo:
+  /// la respuesta de `open()` puede traer el giro de antes del cambio
+  /// de pantalla, así que al terminar manda el último aviso recibido.
+  int? _pendingRotation;
   String? _errorCode;
   bool _permissionDenied = false;
   bool _permissionPermanentlyDenied = false;
@@ -68,6 +80,15 @@ class CameraController extends ChangeNotifier {
     _errorCode = null;
     _permissionDenied = false;
     _permissionPermanentlyDenied = false;
+    _pendingRotation = null;
+    // Escuchar el giro en vivo desde ya: la pantalla gira a
+    // horizontal mientras se abre la cámara, y ese aviso puede llegar
+    // antes de que la apertura termine.
+    _rotationSubscription ??= _cameraService.rotationChanged.listen(
+      _onRotationEvent,
+      onError: (_) {},
+      cancelOnError: false,
+    );
     notifyListeners();
     final states = await _permissionController.checkPermissions();
     if (_disposed || _closeAfterOpen) {
@@ -87,19 +108,25 @@ class CameraController extends ChangeNotifier {
       _permissionPermanentlyDenied =
           camera.status == PermissionStatus.permanentlyDenied;
       _closeAfterOpen = false;
+      _cancelRotationSubscription();
       if (!_disposed) notifyListeners();
       return;
     }
     try {
       final session = await _cameraService.open();
       _textureId = session.textureId;
-      _rotationDegrees = session.rotationDegrees;
+      // Si llegó un aviso de giro mientras se abría, ese es el
+      // vigente: la respuesta puede traer el giro de antes del cambio
+      // de pantalla.
+      _rotationDegrees = _pendingRotation ?? session.rotationDegrees;
+      _pendingRotation = null;
       _state = CameraControllerState.open;
     } on CameraException catch (e) {
       _textureId = null;
       _rotationDegrees = 0;
       _errorCode = e.code;
       _state = CameraControllerState.error;
+      _cancelRotationSubscription();
     }
     if (_disposed || _closeAfterOpen) {
       await _finishOpeningCancelled();
@@ -108,11 +135,38 @@ class CameraController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Un aviso de giro en vivo de Kotlin.
+  ///
+  /// Con la cámara abierta, el giro se aplica en el acto y se
+  /// notifica para que el visor re-renderice; mientras se está
+  /// abriendo, se guarda para aplicar al terminar (la respuesta de
+  /// `open()` puede traer un giro ya viejo). En cualquier otro estado
+  /// se ignora. Sin cambio no se notifica.
+  void _onRotationEvent(int rotationDegrees) {
+    if (_disposed) return;
+    if (_state == CameraControllerState.opening) {
+      _pendingRotation = rotationDegrees;
+      return;
+    }
+    if (_state != CameraControllerState.open) return;
+    if (rotationDegrees == _rotationDegrees) return;
+    _rotationDegrees = rotationDegrees;
+    notifyListeners();
+  }
+
+  /// Deja de escuchar el giro en vivo. Idempotente.
+  void _cancelRotationSubscription() {
+    unawaited(_rotationSubscription?.cancel());
+    _rotationSubscription = null;
+    _pendingRotation = null;
+  }
+
   /// La apertura se canceló (dispose o close durante la apertura):
   /// si llegó a abrirse la sesión, se cierra en el acto y el estado
   /// queda cerrado, sin notificar a nadie (ya no hay quien escuche).
   Future<void> _finishOpeningCancelled() async {
     _closeAfterOpen = false;
+    _cancelRotationSubscription();
     if (_state == CameraControllerState.open) {
       await _cameraService.close();
     }
@@ -153,6 +207,7 @@ class CameraController extends ChangeNotifier {
       _closeAfterOpen = true;
       return;
     }
+    _cancelRotationSubscription();
     await _cameraService.close();
     _textureId = null;
     _rotationDegrees = 0;
@@ -167,6 +222,7 @@ class CameraController extends ChangeNotifier {
     // marca el dispuesto para que ningún await posterior notifique
     // a un controlador ya destruido.
     _disposed = true;
+    _cancelRotationSubscription();
     super.dispose();
   }
 }
