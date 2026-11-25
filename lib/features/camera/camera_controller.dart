@@ -30,6 +30,9 @@ class CameraController extends ChangeNotifier {
 
   CameraControllerState _state = CameraControllerState.closed;
   int? _textureId;
+
+  /// Rotación del preview en grados (0/90/180/270), de la última apertura.
+  int _rotationDegrees = 0;
   String? _errorCode;
   bool _permissionDenied = false;
   bool _permissionPermanentlyDenied = false;
@@ -41,6 +44,9 @@ class CameraController extends ChangeNotifier {
 
   CameraControllerState get state => _state;
   int? get textureId => _textureId;
+
+  /// Grados que hay que girar la textura para que se vea derecha.
+  int get rotationDegrees => _rotationDegrees;
   String? get errorCode => _errorCode;
 
   /// `true` si la cámara está denegada (hay que mostrar la pantalla honesta).
@@ -85,10 +91,13 @@ class CameraController extends ChangeNotifier {
       return;
     }
     try {
-      _textureId = await _cameraService.open();
+      final session = await _cameraService.open();
+      _textureId = session.textureId;
+      _rotationDegrees = session.rotationDegrees;
       _state = CameraControllerState.open;
     } on CameraException catch (e) {
       _textureId = null;
+      _rotationDegrees = 0;
       _errorCode = e.code;
       _state = CameraControllerState.error;
     }
@@ -108,6 +117,7 @@ class CameraController extends ChangeNotifier {
       await _cameraService.close();
     }
     _textureId = null;
+    _rotationDegrees = 0;
     _state = CameraControllerState.closed;
     _errorCode = null;
   }
@@ -145,6 +155,7 @@ class CameraController extends ChangeNotifier {
     }
     await _cameraService.close();
     _textureId = null;
+    _rotationDegrees = 0;
     _state = CameraControllerState.closed;
     _errorCode = null;
     if (!_disposed) notifyListeners();

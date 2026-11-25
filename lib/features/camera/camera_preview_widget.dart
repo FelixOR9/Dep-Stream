@@ -10,10 +10,18 @@ import 'package:flutter/material.dart';
 /// muestra un marcador de posición honesto ("Abriendo cámara…"),
 /// nunca una imagen falsa ni un fotograma inventado. El overlay se
 /// dibuja igual con o sin textura: el marcador no depende de la cámara.
+///
+/// La textura se gira con [rotationDegrees] (0/90/180/270, múltiplo
+/// de 90, calculado en Kotlin): `SurfaceTexture` no tiene
+/// `setTransform`, así que el giro se aplica aquí, en el widget.
+/// El `AspectRatio` va DENTRO del `RotatedBox` para que la textura
+/// nunca se distorsione: el giro de 90°/270° la deja más pequeña con
+/// barras negras, pero derecha y sin estirar. El overlay no se gira.
 class CameraPreviewWidget extends StatelessWidget {
   const CameraPreviewWidget({
     required this.textureId,
     required this.overlay,
+    this.rotationDegrees = 0,
     super.key,
   });
 
@@ -22,6 +30,9 @@ class CameraPreviewWidget extends StatelessWidget {
 
   /// El overlay del partido (marcador, reloj, periodo, estado).
   final Widget overlay;
+
+  /// Grados que hay que girar la textura para que se vea derecha.
+  final int rotationDegrees;
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +53,13 @@ class CameraPreviewWidget extends StatelessWidget {
               ),
             )
           else
-            Texture(textureId: textureId),
+            RotatedBox(
+              quarterTurns: (rotationDegrees ~/ 90) % 4,
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Texture(textureId: textureId),
+              ),
+            ),
           overlay,
         ],
       ),

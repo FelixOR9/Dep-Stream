@@ -16,6 +16,24 @@ class CameraException implements Exception {
       'CameraException($code${message != null ? ': $message' : ''})';
 }
 
+/// Sesión de vista previa abierta: id de la textura y rotación del
+/// preview en grados (0/90/180/270, múltiplo de 90).
+///
+/// La rotación la calcula Kotlin (sensor − rotación de pantalla) y la
+/// aplica el widget `Texture` en Dart: `SurfaceTexture` no tiene
+/// `setTransform`, así que no se puede girar en el lado nativo.
+class CameraPreviewSession {
+  const CameraPreviewSession({
+    required this.textureId,
+    this.rotationDegrees = 0,
+  });
+
+  final int textureId;
+
+  /// Grados que hay que girar la textura para que se vea derecha.
+  final int rotationDegrees;
+}
+
 /// Puente Dart ↔ Kotlin para la cámara (canal `com.felix.depstream/camera`).
 ///
 /// Solo envuelve el canal: no guarda estado de la cámara en SQLite ni
@@ -28,18 +46,31 @@ class CameraService {
 
   final MethodChannel _channel;
 
-  /// Abre la cámara trasera y devuelve el id de la textura de la vista
-  /// previa. Lanza [CameraException] con el código del fallo.
-  Future<int> open() async {
+  /// Abre la cámara trasera y devuelve la sesión de vista previa
+  /// (id de textura + rotación). Lanza [CameraException] con el
+  /// código del fallo.
+  Future<CameraPreviewSession> open() async {
     try {
-      final textureId = await _channel.invokeMethod<int>('openCamera');
-      if (textureId == null) {
+      final raw = await _channel
+          .invokeMethod<Map<Object?, Object?>>('openCamera');
+      if (raw == null) {
         throw const CameraException(
           'session_failed',
           'La cámara no devolvió textura.',
         );
       }
-      return textureId;
+      final textureId = raw['textureId'];
+      if (textureId is! int) {
+        throw const CameraException(
+          'session_failed',
+          'La cámara no devolvió textura.',
+        );
+      }
+      final rotation = raw['rotationDegrees'];
+      return CameraPreviewSession(
+        textureId: textureId,
+        rotationDegrees: rotation is int ? rotation : 0,
+      );
     } on PlatformException catch (e) {
       throw CameraException(e.code, e.message);
     } on MissingPluginException {

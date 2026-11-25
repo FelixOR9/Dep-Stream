@@ -8,10 +8,17 @@ void main() {
   const channel = MethodChannel('com.felix.depstream/camera');
 
   group('CameraService', () {
-    test('open() con canal que devuelve textureId 7 devuelve 7', () async {
+    test(
+        'open() con canal que devuelve textura 7 y giro 90 devuelve ambos',
+        () async {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (call) async {
-            if (call.method == 'openCamera') return 7;
+            if (call.method == 'openCamera') {
+              return <String, Object?>{
+                'textureId': 7,
+                'rotationDegrees': 90,
+              };
+            }
             return null;
           });
       addTearDown(() {
@@ -19,7 +26,50 @@ void main() {
             .setMockMethodCallHandler(channel, null);
       });
 
-      expect(await CameraService().open(), 7);
+      final session = await CameraService().open();
+      expect(session.textureId, 7);
+      expect(session.rotationDegrees, 90);
+    });
+
+    test('open() sin rotationDegrees en la respuesta usa giro 0',
+        () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            if (call.method == 'openCamera') {
+              return <String, Object?>{'textureId': 7};
+            }
+            return null;
+          });
+      addTearDown(() {
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, null);
+      });
+
+      final session = await CameraService().open();
+      expect(session.textureId, 7);
+      expect(session.rotationDegrees, 0);
+    });
+
+    test('open() sin textureId en la respuesta devuelve session_failed',
+        () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            if (call.method == 'openCamera') {
+              return <String, Object?>{'rotationDegrees': 90};
+            }
+            return null;
+          });
+      addTearDown(() {
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, null);
+      });
+
+      try {
+        await CameraService().open();
+        fail('open() debería lanzar CameraException.');
+      } on CameraException catch (e) {
+        expect(e.code, 'session_failed');
+      }
     });
 
     test('open() con error camera_in_use devuelve el error con su código',

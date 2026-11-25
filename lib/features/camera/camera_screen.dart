@@ -266,6 +266,7 @@ class _CameraScreenState extends State<CameraScreen>
               padding: const EdgeInsets.all(8),
               child: CameraPreviewWidget(
                 textureId: cameraController.textureId,
+                rotationDegrees: cameraController.rotationDegrees,
                 overlay: CameraOverlayWidget(
                   data: CameraOverlayData.fromMatch(match),
                 ),

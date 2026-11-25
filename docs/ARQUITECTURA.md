@@ -106,8 +106,10 @@ Etapa 2) y `openAppSettings`.
   depende de la cámara.
 - **Orientación:** el sensor está a 90°; la textura se gira según la
   rotación de la pantalla (fórmula estándar de Camera2, probada con
-  unitarios). La pantalla se bloquea en horizontal, así que el giro
-  es fijo mientras está abierta.
+  unitarios). El giro lo aplica el widget `Texture` en Dart
+  (`RotatedBox` en `CameraPreviewWidget`): en Kotlin no se puede,
+  `SurfaceTexture` no tiene `setTransform`. La pantalla se bloquea en
+  horizontal, así que el giro es fijo mientras está abierta.
 - La selección de tamaño y la rotación viven en `CameraPreviewMath`
   (lógica pura, probada con JUnit) porque las clases del framework de
   Android no se pueden usar en tests unitarios.

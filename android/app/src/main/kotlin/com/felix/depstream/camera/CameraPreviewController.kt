@@ -1,7 +1,6 @@
 package com.felix.depstream.camera
 
 import android.annotation.SuppressLint
-import android.graphics.Matrix
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.CameraAccessException
 import android.hardware.camera2.CameraCaptureSession
@@ -23,6 +22,12 @@ import io.flutter.view.TextureRegistry
  * Dart pide una textura y aquí se crea el `SurfaceTexture` que se
  * pasa como superficie de la sesión; el widget de Flutter es un
  * `Texture(textureId)`, no se dibuja ningún píxel en Dart.
+ *
+ * La rotación del preview NO se aplica aquí: `SurfaceTexture` no
+ * tiene `setTransform` (ese método es de `TextureView`, que no se
+ * usa: la textura la dibuja el widget `Texture` de Flutter). La
+ * rotación calculada se devuelve a Dart junto con el id de la
+ * textura y es el widget quien gira la imagen con `RotatedBox`.
  *
  * - Sin audio: solo vídeo. El micrófono no se abre en esta etapa.
  * - Sin grabación: la Etapa 3 añadirá una superficie de `MediaCodec`
@@ -50,6 +55,9 @@ class CameraPreviewController(
     private var pendingResult: MethodChannel.Result? = null
     private var lastErrorCode: String? = null
 
+    /** Rotación del preview en grados (0/90/180/270), de la última apertura. */
+    private var lastRotationDegrees: Int = 0
+
     /** Estado actual, para `getCameraState` y para diagnóstico. */
     val state: CameraLifecycleState get() = lifecycle.state
 
@@ -73,8 +81,9 @@ class CameraPreviewController(
     fun openCamera(result: MethodChannel.Result) {
         synchronized(this) {
             if (lifecycle.state == CameraLifecycleState.open) {
-                // Ya hay sesión: no-op, se devuelve la textura que ya existe.
-                result.success(textureId)
+                // Ya hay sesión: no-op, se devuelve la textura que ya
+                // existe con su rotación (la misma de la apertura).
+                result.success(openResultMap())
                 return
             }
             if (!lifecycle.requestOpen()) {
@@ -112,7 +121,14 @@ class CameraPreviewController(
             val entry = textureRegistry.createSurfaceTexture()
             val surfaceTexture = entry.surfaceTexture()
             surfaceTexture.setDefaultBufferSize(previewSize.width, previewSize.height)
-            applyPreviewTransform(surfaceTexture, sensorOrientation)
+            // La rotación se calcula aquí pero NO se aplica al
+            // SurfaceTexture (no tiene setTransform): se guarda y se
+            // devuelve a Dart, que gira el widget Texture.
+            lastRotationDegrees = CameraPreviewMath.previewRotationDegrees(
+                sensorOrientation = sensorOrientation,
+                displayRotationDegrees = displayRotationDegrees(),
+                frontCamera = false,
+            )
             textureEntry = entry
             textureId = entry.id()
             cameraManager.openCamera(
@@ -175,7 +191,7 @@ class CameraPreviewController(
                             )
                             synchronized(this@CameraPreviewController) {
                                 lifecycle.markOpened()
-                                pendingResult?.success(textureId)
+                                pendingResult?.success(openResultMap())
                                 pendingResult = null
                             }
                         } catch (e: CameraAccessException) {
@@ -209,21 +225,16 @@ class CameraPreviewController(
         }
     }
 
-    private fun applyPreviewTransform(
-        surfaceTexture: SurfaceTexture,
-        sensorOrientation: Int,
-    ) {
-        val rotation = CameraPreviewMath.previewRotationDegrees(
-            sensorOrientation = sensorOrientation,
-            displayRotationDegrees = displayRotationDegrees(),
-            frontCamera = false,
-        )
-        if (rotation != 0) {
-            surfaceTexture.setTransform(
-                Matrix().apply { setRotate(rotation.toFloat(), 0.5f, 0.5f) },
-            )
-        }
-    }
+    /** Respuesta de `openCamera`: id de textura + rotación del preview.
+     *
+     * Dart gira el widget `Texture` con estos grados (múltiplo de 90):
+     * la rotación no se puede aplicar en Kotlin porque `SurfaceTexture`
+     * no tiene `setTransform`.
+     */
+    private fun openResultMap(): Map<String, Any> = mapOf(
+        "textureId" to textureId,
+        "rotationDegrees" to lastRotationDegrees,
+    )
 
     private fun startBackgroundThread() {
         val thread = HandlerThread("DepStreamCamera")
@@ -252,6 +263,7 @@ class CameraPreviewController(
             // Cerrar nunca debe lanzar: lo peor ya pasó.
         }
         captureSession = null
+        lastRotationDegrees = 0
         try {
             cameraDevice?.close()
         } catch (_: Exception) {

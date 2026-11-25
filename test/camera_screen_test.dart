@@ -25,11 +25,12 @@ void main() {
   }
 
   /// Mock de los dos canales. Devuelve el estado de cámara pedido y
-  /// una textura 7 al abrir; anota en el mapa cuántas veces se abrió
-  /// (`open`), se cerró (`close`), se pidió solo la cámara
-  /// (`requestCamera`) y se abrieron los ajustes (`openAppSettings`).
-  /// `requestCamera` concede el permiso (como haría el usuario al
-  /// aceptar), así que `checkPermissions` pasa a devolver `granted`.
+  /// una textura 7 con giro 90° al abrir; anota en el mapa cuántas
+  /// veces se abrió (`open`), se cerró (`close`), se pidió solo la
+  /// cámara (`requestCamera`) y se abrieron los ajustes
+  /// (`openAppSettings`). `requestCamera` concede el permiso (como
+  /// haría el usuario al aceptar), así que `checkPermissions` pasa a
+  /// devolver `granted`.
   Map<String, int> mockChannels({required String cameraStatus}) {
     var granted = cameraStatus == 'granted';
     final calls = <String, int>{
@@ -66,7 +67,10 @@ void main() {
       (call) async {
         if (call.method == 'openCamera') {
           calls['open'] = calls['open']! + 1;
-          return 7;
+          return <String, Object?>{
+            'textureId': 7,
+            'rotationDegrees': 90,
+          };
         }
         if (call.method == 'closeCamera') {
           calls['close'] = calls['close']! + 1;
@@ -143,6 +147,14 @@ void main() {
       await tapCameraButton(tester);
 
       expect(find.byType(Texture), findsOneWidget);
+      // La textura se gira 90° (un cuarto de vuelta): el giro lo
+      // aplica el widget, no el SurfaceTexture (no tiene setTransform).
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is RotatedBox && w.quarterTurns == 1,
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Águilas'), findsWidgets);
       expect(find.text('Leones'), findsWidgets);
       expect(find.text('0 - 0'), findsOneWidget);
