@@ -30,9 +30,9 @@ name: Dep-Stream - Compilar APK de depuración
 
 on:
   push:
-    branches: [main, etapa-0, etapa-1]
+    branches: [main, etapa-0, etapa-1, etapa-2]
   pull_request:
-    branches: [main, etapa-0, etapa-1]
+    branches: [main, etapa-0, etapa-1, etapa-2]
   workflow_dispatch:
 
 permissions:
@@ -117,7 +117,7 @@ jobs:
       - name: Guardar el APK como archivo descargable
         uses: actions/upload-artifact@v4
         with:
-          name: depstream-debug-apk-etapa1
+          name: depstream-debug-apk-etapa2
           path: build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error
           retention-days: 7
