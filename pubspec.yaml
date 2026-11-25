@@ -1,0 +1,36 @@
+name: dep_stream
+description: "Transmite partidos de fútbol en vivo a Facebook desde tu teléfono, con marcador y grabación local."
+publish_to: 'none'
+
+# Dep-Stream v0.1.0+1 — Etapa 0: Fundación.
+# No es 1.0.0: la 1.0.0 llega cuando el MVP transmita (Etapa 5).
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.14.0
+
+# Dependencias mínimas de la Etapa 0 (plan §5). Cualquier otra necesita
+# justificación en la revisión de su etapa.
+dependencies:
+  flutter:
+    sdk: flutter
+  # Base de datos local de partidos (misma usada en TRANSMITI2).
+  sqflite: ^2.4.2
+  sqflite_android: ^2.4.0
+  # Guardar claves de stream y tokens (futuro) en almacenamiento cifrado.
+  flutter_secure_storage: ^10.0.0
+  # Rutas de la base de datos.
+  path: ^1.9.0
+  # Carpeta de archivos de la app (futura carpeta de grabaciones).
+  path_provider: ^2.1.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  # Solo para probar la base de datos en `flutter test` (SQLite en memoria).
+  # No es dependencia de la app.
+  sqflite_common_ffi: ^2.3.6
+
+flutter:
+  uses-material-design: true
